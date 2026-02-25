@@ -1,0 +1,959 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>Floorball Sub Timer</title>
+  <style>
+    :root { font-family: -apple-system, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+    body { margin:0; background:#0b0f14; color:#e8eef6; }
+    header {
+      padding: 14px 16px 8px;
+      position: sticky; top: 0;
+      background: rgba(11,15,20,.92);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid #1e2a38;
+      z-index: 10;
+    }
+    h1 { margin:0; font-size: 18px; font-weight: 800; letter-spacing: .2px; }
+
+    .wrap { padding: 12px 16px 120px; }
+
+    .card {
+      background:#121a24;
+      border: 1px solid #1e2a38;
+      border-radius: 14px;
+      padding: 12px;
+      margin: 12px 0;
+    }
+
+    .row { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    label { font-size: 12px; opacity: .85; display:block; margin-bottom: 6px; }
+    input, textarea, select {
+      background:#0c121a; color:#e8eef6; border: 1px solid #223246; border-radius: 10px;
+      padding: 10px 10px; font-size: 16px; width: 100%;
+    }
+    textarea { min-height: 110px; resize: vertical; }
+    .field { flex: 1 1 150px; min-width: 140px; }
+
+    .btnbar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    button {
+      border: 1px solid #2a3d55; background:#0e1620; color:#e8eef6;
+      padding: 10px 12px; border-radius: 12px; font-size: 16px; font-weight: 800;
+    }
+    button.primary { background:#1a2a3c; border-color:#3a587a; }
+    button.danger  { background:#2a1416; border-color:#7a3a40; }
+    button.smallbtn { font-size: 13px; padding: 7px 9px; font-weight: 700; opacity: .95; }
+
+    .meta { opacity:.9; font-size: 13px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+    .pill { display:inline-block; padding: 4px 8px; border-radius: 999px; border:1px solid #2a3d55; font-size: 12px; opacity:.95; }
+
+    /* Prevent overlap: allow columns to shrink */
+    .grid2 { display:grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); gap: 10px; }
+
+    .list { display:flex; flex-direction: column; gap: 8px; margin-top: 10px; }
+
+    .playerBtn {
+      display:flex; justify-content: space-between; align-items:center;
+      width:100%;
+      text-align:left;
+      padding: 10px 10px;
+      border-radius: 12px;
+      border: 1px solid #223246;
+      background:#0c121a;
+      color:#e8eef6;
+      font-size: 16px;
+
+      min-width: 0;
+      box-sizing: border-box;
+      gap: 10px;
+    }
+    .playerBtn small { opacity:.8; flex: 0 0 auto; }
+
+    .pname {
+      min-width: 0;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    /* Circular goalie tag */
+    .tagG {
+      font-size: 12px;
+      width: 20px;
+      height: 20px;
+      line-height: 18px;
+      border: 1px solid #3a587a;
+      border-radius: 50%;
+      margin-left: 8px;
+      opacity:.95;
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      font-weight: 900;
+      padding: 0;
+      box-sizing: border-box;
+      flex: 0 0 auto;
+    }
+    .tagN { font-size: 12px; padding: 2px 6px; border: 1px solid #3a7a54; border-radius: 999px; margin-left: 8px; opacity:.95; flex: 0 0 auto; }
+
+    .hr { height:1px; background:#1e2a38; margin: 10px 0; }
+    .small { font-size: 12px; opacity:.85; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+
+    /* BIG TIMER ROW */
+    .bigRow { display:flex; gap:12px; align-items:stretch; }
+    .bigBox {
+      flex: 1 1 0;
+      border: 1px solid #223246;
+      background:#0c121a;
+      border-radius: 14px;
+      padding: 10px 12px;
+      min-width: 0;
+    }
+    .bigLabel { font-size: 12px; opacity:.85; font-weight: 800; letter-spacing: .6px; }
+    .bigTime { font-size: 44px; font-weight: 900; letter-spacing: 1px; line-height: 1.0; margin-top: 6px; }
+    .subBox { min-width: 46%; }
+    .subLine { display:flex; gap:8px; align-items:baseline; }
+    .subWord { font-size: 14px; font-weight: 1000; letter-spacing: 1.2px; }
+
+    /* SUB NOW green state */
+    .subNowGreen, .subNowGreen * { color: #37d67a !important; }
+
+    /* Visual alert (SUB flash) */
+    .flash {
+      animation: flashSwap 0.6s steps(2, jump-none) infinite;
+      border-color: #ffffff !important;
+    }
+    @keyframes flashSwap {
+      0%   { background:#b00020; color:#ffffff; }
+      50%  { background:#ffffff; color:#b00020; }
+      100% { background:#b00020; color:#ffffff; }
+    }
+
+    .footerbar {
+      position: fixed; left:0; right:0; bottom:0;
+      padding: 10px 12px calc(10px + env(safe-area-inset-bottom));
+      background: rgba(11,15,20,.92);
+      backdrop-filter: blur(10px);
+      border-top: 1px solid #1e2a38;
+    }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Floorball Sub Timer</h1>
+</header>
+
+<div class="wrap">
+
+  <!-- TOP: Big timers + primary buttons -->
+  <div class="card">
+    <div class="bigRow">
+      <div class="bigBox">
+        <div class="bigLabel">PERIOD</div>
+        <div class="bigTime" id="timerText">15:00</div>
+      </div>
+
+      <div class="bigBox subBox" id="subBigBox">
+        <div class="subLine">
+          <div class="subWord" id="subWord">SUB</div>
+          <div class="bigLabel" id="subQualifier" style="opacity:.8;">in</div>
+        </div>
+        <div class="bigTime" id="subTimerText">—</div>
+      </div>
+    </div>
+
+    <div class="meta" style="margin-top:10px;">
+      <span class="pill" id="periodPill">Period 1 / 2</span>
+      <span class="pill" id="statusPill">Paused</span>
+      <span class="pill"><b id="scoreText">0–0</b> <span class="small"> (Us–Opp)</span></span>
+      <span class="pill" id="rotationPill">Rotation ~ —</span>
+      <span class="pill" id="warnPill">Warn @ 15s</span>
+    </div>
+
+    <div class="btnbar" style="margin-top:10px;">
+      <button class="primary" id="startPauseBtn">Start</button>
+      <button id="subMadeBtn">Sub made → next line</button>
+
+      <button class="smallbtn" id="resetSubBtn">Reset sub timer</button>
+      <button class="danger smallbtn" id="resetBtn">Reset period</button>
+    </div>
+
+    <div class="btnbar" style="margin-top:10px;">
+      <button class="primary smallbtn" id="oppGoalBtn">Opp goal +1</button>
+      <button class="smallbtn" id="oppUndoBtn">Opp undo</button>
+      <button class="smallbtn" id="usUndoBtn">Us undo</button>
+    </div>
+  </div>
+
+  <!-- Next OFF / Next ON -->
+  <div class="card">
+    <div class="grid2">
+      <div>
+        <div class="pill">Next OFF</div>
+        <div class="list" id="nextOffList"></div>
+      </div>
+      <div>
+        <div class="pill">Next ON</div>
+        <div class="list" id="nextOnList"></div>
+      </div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="row">
+      <div class="pill">Current goalie: <span class="mono" id="currentGoalieText">—</span></div>
+      <div class="pill">Next goalie (from NEXT ON): <span class="mono" id="nextGoalieText">—</span></div>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="grid2">
+      <div>
+        <div class="pill">Current on court (tap to log goal)</div>
+        <div class="list" id="courtList"></div>
+      </div>
+      <div>
+        <div class="pill">Bench</div>
+        <div class="list" id="benchList"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Players -->
+  <div class="card">
+    <label>Players (one per line)</label>
+    <textarea id="playersText" placeholder="One player per line"></textarea>
+
+    <div class="btnbar" style="margin-top:10px;">
+      <button class="primary" id="applyPlayersBtn">Apply players</button>
+      <button id="shuffleBtn">Shuffle order</button>
+      <button class="danger" id="clearGoalsBtn">Clear goals</button>
+    </div>
+
+    <div class="hr"></div>
+
+    <div class="pill">Goalie rotation (who’s next into goals)</div>
+    <div class="list" id="goalieRotationList"></div>
+
+    <div class="small" style="margin-top:8px;">
+      <b>G</b> = current goalie. <b>NEXT</b> = next goalie (must be one of the players about to come ON). Saved automatically on this device.
+    </div>
+  </div>
+
+  <!-- Goals -->
+  <div class="card">
+    <div class="pill">Goals (tap player above to add)</div>
+    <div class="list" id="goalsList"></div>
+    <div class="btnbar" style="margin-top:10px;">
+      <button id="copyGoalsBtn">Copy goals</button>
+    </div>
+    <div class="small" style="margin-top:8px;">
+      Logged as: Period, time remaining, scorer.
+    </div>
+  </div>
+
+  <!-- Settings (bottom) -->
+  <div class="card">
+    <div class="pill">Settings</div>
+
+    <div class="row" style="margin-top:10px;">
+      <div class="field">
+        <label>Period length (minutes)</label>
+        <input id="periodLen" type="number" min="1" max="60" value="15" />
+      </div>
+      <div class="field">
+        <label># Periods</label>
+        <input id="numPeriods" type="number" min="1" max="5" value="2" />
+      </div>
+      <div class="field">
+        <label>Subs at once</label>
+        <select id="subsAtOnce">
+          <option value="1">1</option>
+          <option value="2" selected>2</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Warning beep (seconds)</label>
+        <input id="warnSec" type="number" min="0" max="120" value="15" />
+      </div>
+      <div class="field">
+        <label>Starting goalie</label>
+        <select id="startingGoalie">
+          <option value="">(apply players first)</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Players on court</label>
+        <input type="number" value="5" disabled />
+      </div>
+    </div>
+
+    <div class="small" style="margin-top:8px;">
+      Settings and players are remembered on this device.
+    </div>
+  </div>
+
+</div>
+
+<div class="footerbar">
+  <div class="small">
+    SUB turns green at warning (“SUB NOW”), flashes red/white when due (“SUB DUE”) until you press “Sub made”.
+  </div>
+</div>
+
+<script>
+(() => {
+  const ON_COURT = 5;
+
+  // ===== Persistence (localStorage) =====
+  const LS_KEY = "floorball_sub_timer_v1";
+  const loadState = () => {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw);
+    } catch { return null; }
+  };
+  const saveState = (partial) => {
+    try {
+      const cur = loadState() || {};
+      const next = { ...cur, ...partial };
+      localStorage.setItem(LS_KEY, JSON.stringify(next));
+    } catch {}
+  };
+
+  // Roster + lines
+  let roster = [];
+  let court = [];
+  let bench = [];
+
+  // Goalie state
+  let currentGoalieName = null;
+  let goalieRotatePtr = 0;
+  let goalieDone = new Set();
+
+  // Settings
+  let numPeriods = 2;
+  let periodLenSec = 15 * 60;
+  let subsAtOnce = 2;
+  let warnSec = 15;
+
+  // Clock
+  let currentPeriod = 1;
+  let remainingSec = periodLenSec;
+  let running = false;
+  let tickHandle = null;
+
+  // Sub countdown (continuous)
+  let subRemainingSec = 0;
+
+  // NEW: separate “warning already beeped this cycle” vs “UI should be green now”
+  let warningBeepedThisCycle = false;
+  let showSubNowGreen = false;
+
+  // NEW: cycle tracking to allow “early sub” to acknowledge the upcoming due
+  let subCycleId = 0;
+  let acknowledgedCycleId = -1;
+
+  // Visual due state (persists until Sub Made pressed)
+  let subDueUnacknowledged = false;
+
+  // Score
+  let goals = [];
+  let oppGoals = 0;
+
+  // Audio
+  let audioUnlocked = false;
+  let audioCtx = null;
+
+  const $ = (id) => document.getElementById(id);
+
+  // DOM
+  const timerTextEl = $("timerText");
+  const subTimerTextEl = $("subTimerText");
+  const subBigBoxEl = $("subBigBox");
+  const subWordEl = $("subWord");
+  const subQualifierEl = $("subQualifier");
+
+  const periodPillEl = $("periodPill");
+  const statusPillEl = $("statusPill");
+  const rotationPillEl = $("rotationPill");
+  const warnPillEl = $("warnPill");
+  const scoreTextEl = $("scoreText");
+
+  const startPauseBtn = $("startPauseBtn");
+  const subMadeBtn = $("subMadeBtn");
+
+  const resetSubBtn = $("resetSubBtn");
+  const resetBtn = $("resetBtn");
+
+  const oppGoalBtn = $("oppGoalBtn");
+  const oppUndoBtn = $("oppUndoBtn");
+  const usUndoBtn = $("usUndoBtn");
+
+  const courtListEl = $("courtList");
+  const benchListEl = $("benchList");
+  const nextOffListEl = $("nextOffList");
+  const nextOnListEl = $("nextOnList");
+
+  const currentGoalieTextEl = $("currentGoalieText");
+  const nextGoalieTextEl = $("nextGoalieText");
+  const goalieRotationListEl = $("goalieRotationList");
+  const goalsListEl = $("goalsList");
+
+  const copyGoalsBtn = $("copyGoalsBtn");
+  const clearGoalsBtn = $("clearGoalsBtn");
+
+  // Settings controls
+  const periodLenEl = $("periodLen");
+  const numPeriodsEl = $("numPeriods");
+  const subsAtOnceEl = $("subsAtOnce");
+  const warnSecEl = $("warnSec");
+  const startingGoalieEl = $("startingGoalie");
+  const playersTextEl = $("playersText");
+  const applyPlayersBtn = $("applyPlayersBtn");
+  const shuffleBtn = $("shuffleBtn");
+
+  // Helpers
+  const clampInt = (v, lo, hi, fallback) => {
+    const n = Number.parseInt(v, 10);
+    if (Number.isNaN(n)) return fallback;
+    return Math.min(hi, Math.max(lo, n));
+  };
+
+  const fmtTime = (sec) => {
+    sec = Math.max(0, Math.floor(sec));
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${String(s).padStart(2,"0")}`;
+  };
+
+  const parseRoster = () => {
+    return playersTextEl.value
+      .split(/\r?\n/)
+      .map(s => s.trim())
+      .filter(Boolean);
+  };
+
+  const shuffle = (arr) => {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  };
+
+  const gcd = (a,b) => { while (b) [a,b] = [b, a%b]; return a; };
+
+  const recommendedRotationSec = () => {
+    const n = roster.length;
+    if (n <= 0) return null;
+    const shifts = n / gcd(n, ON_COURT);
+    if (!Number.isFinite(shifts) || shifts <= 0) return null;
+    return Math.max(10, Math.round(periodLenSec / shifts));
+  };
+
+  // --- Audio unlock ---
+  const ensureAudioUnlocked = () => {
+    if (audioUnlocked) return true;
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return false;
+      audioCtx = new AudioCtx();
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = "sine";
+      o.frequency.value = 440;
+      g.gain.value = 0.00001;
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start();
+      o.stop(audioCtx.currentTime + 0.02);
+      audioUnlocked = true;
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const beep = (durationMs = 160, freq = 880) => {
+    try {
+      const AudioCtx = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtx) return;
+      if (!audioCtx) audioCtx = new AudioCtx();
+      audioCtx.resume?.();
+
+      const o = audioCtx.createOscillator();
+      const g = audioCtx.createGain();
+      o.type = "sine";
+      o.frequency.value = freq;
+      g.gain.value = 0.12;
+      o.connect(g); g.connect(audioCtx.destination);
+      o.start();
+      setTimeout(() => { try { o.stop(); } catch {} }, durationMs);
+    } catch {}
+  };
+
+  const singleBeep = () => beep(170, 880);
+  const doubleBeep = () => { beep(140, 880); setTimeout(() => beep(140, 880), 170); };
+
+  // Sub timer reset (manual or period start only)
+  const resetSubTimer = (toSec = null) => {
+    const rec = recommendedRotationSec();
+    const target = (toSec != null) ? toSec : (rec ?? 0);
+    subRemainingSec = Math.max(0, Math.floor(target));
+
+    // New cycle starts
+    subCycleId += 1;
+    warningBeepedThisCycle = false;
+    showSubNowGreen = false;
+    subDueUnacknowledged = false;
+  };
+
+  const ensureGoalieOnCourt = (goalieName) => {
+    if (!goalieName) return;
+    if (court.includes(goalieName)) return;
+    const benchIdx = bench.indexOf(goalieName);
+    if (benchIdx >= 0) {
+      const swapOut = court[0];
+      court[0] = goalieName;
+      bench[benchIdx] = swapOut;
+    }
+  };
+
+  const computeOffOn = (courtArr, benchArr) => {
+    const k = Math.min(subsAtOnce, benchArr.length);
+    const offCandidates = courtArr.filter(n => n !== currentGoalieName);
+    const off = offCandidates.slice(0, k);
+    const on = benchArr.slice(0, k);
+    return { k, off, on };
+  };
+
+  const pickNextGoalieFromOnNoRepeat = (onArr, ptr) => {
+    const n = roster.length;
+    if (!onArr || onArr.length === 0 || n === 0) return { goalieName: null, newPtr: ptr };
+
+    if (goalieDone.size >= roster.length) {
+      goalieDone = new Set();
+      if (currentGoalieName) goalieDone.add(currentGoalieName);
+    }
+
+    const pickFromOnWithFilter = (filterFn) => {
+      for (let i = 0; i < n; i++) {
+        const cand = roster[(ptr + i) % n];
+        if (onArr.includes(cand) && filterFn(cand)) {
+          return { name: cand, newPtr: (ptr + i + 1) % n };
+        }
+      }
+      return null;
+    };
+
+    let pick = pickFromOnWithFilter(cand => !goalieDone.has(cand));
+    if (pick) return { goalieName: pick.name, newPtr: pick.newPtr };
+
+    pick = pickFromOnWithFilter(cand => cand !== currentGoalieName);
+    if (pick) return { goalieName: pick.name, newPtr: pick.newPtr };
+
+    const first = onArr[0];
+    const idx = roster.indexOf(first);
+    return { goalieName: first, newPtr: (idx >= 0) ? (idx + 1) % n : ptr };
+  };
+
+  const simulateNextLine = () => {
+    const { off, on } = computeOffOn(court, bench);
+    const pick = pickNextGoalieFromOnNoRepeat(on, goalieRotatePtr);
+    return { off, on, nextGoalie: pick.goalieName };
+  };
+
+  const populateStartingGoalieSelect = () => {
+    const prev = startingGoalieEl.value;
+    startingGoalieEl.innerHTML = "";
+    roster.forEach(name => {
+      const opt = document.createElement("option");
+      opt.value = name;
+      opt.textContent = name;
+      startingGoalieEl.appendChild(opt);
+    });
+    const fallback = (prev && roster.includes(prev)) ? prev : (currentGoalieName || roster[0] || "");
+    if (fallback) startingGoalieEl.value = fallback;
+  };
+
+  const updateSubLabelAndColour = () => {
+    const rec = recommendedRotationSec();
+    if (!rec) {
+      subWordEl.textContent = "SUB";
+      subQualifierEl.textContent = "in";
+      subBigBoxEl.classList.remove("subNowGreen");
+      return;
+    }
+
+    if (subDueUnacknowledged) {
+      subWordEl.textContent = "SUB";
+      subQualifierEl.textContent = "DUE";
+      subBigBoxEl.classList.remove("subNowGreen");
+      return;
+    }
+
+    if (showSubNowGreen && warnSec > 0) {
+      subWordEl.textContent = "SUB";
+      subQualifierEl.textContent = "NOW";
+      subBigBoxEl.classList.add("subNowGreen");
+      return;
+    }
+
+    subWordEl.textContent = "SUB";
+    subQualifierEl.textContent = "in";
+    subBigBoxEl.classList.remove("subNowGreen");
+  };
+
+  const render = () => {
+    timerTextEl.textContent = fmtTime(remainingSec);
+
+    const rec = recommendedRotationSec();
+    rotationPillEl.textContent = `Rotation ~ ${rec ? fmtTime(rec) : "—"}`;
+    warnPillEl.textContent = `Warn @ ${warnSec}s`;
+    subTimerTextEl.textContent = rec ? fmtTime(subRemainingSec) : "—";
+
+    if (subDueUnacknowledged) subBigBoxEl.classList.add("flash");
+    else subBigBoxEl.classList.remove("flash");
+
+    updateSubLabelAndColour();
+
+    periodPillEl.textContent = `Period ${currentPeriod} / ${numPeriods}`;
+    statusPillEl.textContent = running ? "Running" : "Paused";
+    scoreTextEl.textContent = `${goals.length}–${oppGoals}`;
+
+    const sim = simulateNextLine();
+    const { off, on } = computeOffOn(court, bench);
+
+    nextOffListEl.innerHTML = "";
+    off.forEach(n => {
+      const div = document.createElement("div");
+      div.className = "playerBtn";
+      div.style.opacity = "0.95";
+      div.innerHTML = `<div class="pname">${n}</div><small>OFF</small>`;
+      nextOffListEl.appendChild(div);
+    });
+
+    nextOnListEl.innerHTML = "";
+    on.forEach(n => {
+      const div = document.createElement("div");
+      div.className = "playerBtn";
+      div.style.opacity = "0.95";
+      const isNextG = (sim.nextGoalie && n === sim.nextGoalie);
+      div.innerHTML = `<div class="pname">${n}${isNextG ? ' <span class="tagG">G</span>' : ""}</div><small>ON</small>`;
+      nextOnListEl.appendChild(div);
+    });
+
+    // Court list
+    courtListEl.innerHTML = "";
+    court.forEach(name => {
+      const btn = document.createElement("button");
+      btn.className = "playerBtn";
+      btn.type = "button";
+
+      const left = document.createElement("div");
+      left.className = "pname";
+      left.textContent = name;
+
+      if (currentGoalieName && name === currentGoalieName) {
+        const g = document.createElement("span");
+        g.className = "tagG";
+        g.textContent = "G";
+        left.appendChild(g);
+      }
+
+      const right = document.createElement("small");
+      right.textContent = "Goal +";
+      btn.appendChild(left);
+      btn.appendChild(right);
+      btn.addEventListener("click", () => addGoal(name));
+      courtListEl.appendChild(btn);
+    });
+
+    // Bench list
+    benchListEl.innerHTML = "";
+    bench.forEach(name => {
+      const div = document.createElement("div");
+      div.className = "playerBtn";
+      div.style.opacity = "0.85";
+      div.innerHTML = `<div class="pname">${name}</div><small>Bench</small>`;
+      benchListEl.appendChild(div);
+    });
+
+    currentGoalieTextEl.textContent = currentGoalieName ?? "—";
+    nextGoalieTextEl.textContent = sim.nextGoalie ?? "—";
+
+    goalieRotationListEl.innerHTML = "";
+    roster.forEach(name => {
+      const div = document.createElement("div");
+      div.className = "playerBtn";
+      div.style.opacity = "0.95";
+
+      let badges = "";
+      if (currentGoalieName && name === currentGoalieName) badges += ' <span class="tagG">G</span>';
+      if (sim.nextGoalie && name === sim.nextGoalie) badges += ' <span class="tagN">NEXT</span>';
+
+      const doneTxt = goalieDone.has(name) ? "Goalie done" : "Goalie pending";
+      div.innerHTML = `<div class="pname">${name}${badges}</div><small>${court.includes(name) ? "On court" : "Bench"} · ${doneTxt}</small>`;
+      goalieRotationListEl.appendChild(div);
+    });
+
+    goalsListEl.innerHTML = "";
+    goals.slice().reverse().forEach(g => {
+      const div = document.createElement("div");
+      div.className = "playerBtn";
+      div.style.opacity = "0.95";
+      div.innerHTML = `<div class="pname"><b>${g.name}</b></div><small>P${g.period} · ${fmtTime(g.remainingSec)} left</small>`;
+      goalsListEl.appendChild(div);
+    });
+  };
+
+  const applySettingsFromUI = () => {
+    periodLenSec = clampInt(periodLenEl.value, 1, 60, 15) * 60;
+    numPeriods = clampInt(numPeriodsEl.value, 1, 5, 2);
+    subsAtOnce = clampInt(subsAtOnceEl.value, 1, 2, 2);
+    warnSec = clampInt(warnSecEl.value, 0, 120, 15);
+
+    saveState({
+      periodLenMin: clampInt(periodLenEl.value, 1, 60, 15),
+      numPeriods,
+      subsAtOnce,
+      warnSec
+    });
+
+    remainingSec = periodLenSec;
+    currentPeriod = 1;
+    running = false;
+    stopTick();
+
+    resetSubTimer();
+    render();
+  };
+
+  const applyPlayers = () => {
+    roster = parseRoster();
+    if (roster.length < ON_COURT) {
+      alert(`Need at least ${ON_COURT} players to run (you entered ${roster.length}).`);
+      return;
+    }
+
+    saveState({ playersText: playersTextEl.value });
+
+    court = roster.slice(0, ON_COURT);
+    bench = roster.slice(ON_COURT);
+
+    const selected = startingGoalieEl.value;
+    currentGoalieName = (selected && roster.includes(selected)) ? selected : court[0];
+    ensureGoalieOnCourt(currentGoalieName);
+
+    goalieDone = new Set();
+    if (currentGoalieName) goalieDone.add(currentGoalieName);
+
+    const idx = roster.indexOf(currentGoalieName);
+    goalieRotatePtr = (idx >= 0) ? (idx + 1) % roster.length : 0;
+
+    populateStartingGoalieSelect();
+    saveState({ startingGoalie: currentGoalieName });
+
+    resetSubTimer();
+    render();
+  };
+
+  const stopTick = () => {
+    if (tickHandle) {
+      clearInterval(tickHandle);
+      tickHandle = null;
+    }
+  };
+
+  const startTick = () => {
+    if (tickHandle) return;
+    tickHandle = setInterval(() => {
+      if (!running) return;
+
+      remainingSec -= 1;
+
+      const rec = recommendedRotationSec();
+      if (rec) {
+        // FIX #2: decrement first so warning beeps when display shows EXACT warnSec
+        subRemainingSec -= 1;
+
+        // warning threshold
+        if (!warningBeepedThisCycle && warnSec > 0 && subRemainingSec === warnSec) {
+          warningBeepedThisCycle = true;
+          showSubNowGreen = true;
+          singleBeep();
+        }
+
+        // due threshold
+        if (subRemainingSec <= 0) {
+          const cycleWasAcknowledged = (acknowledgedCycleId === subCycleId);
+
+          if (!cycleWasAcknowledged) {
+            doubleBeep();
+            subDueUnacknowledged = true;
+          }
+
+          // start next cycle immediately (continuous countdown)
+          subCycleId += 1;
+          subRemainingSec = rec;
+          warningBeepedThisCycle = false;
+          showSubNowGreen = false;
+        }
+      }
+
+      if (remainingSec <= 0) {
+        remainingSec = 0;
+        running = false;
+        stopTick();
+
+        if (currentPeriod < numPeriods) {
+          currentPeriod += 1;
+          remainingSec = periodLenSec;
+
+          goalieDone = new Set();
+          if (currentGoalieName) goalieDone.add(currentGoalieName);
+
+          resetSubTimer();
+        }
+      }
+
+      render();
+    }, 1000);
+  };
+
+  const toggleStartPause = () => {
+    ensureAudioUnlocked();
+    running = !running;
+    if (running) startTick();
+    startPauseBtn.textContent = running ? "Pause" : "Start";
+    render();
+  };
+
+  const resetPeriod = () => {
+    running = false;
+    stopTick();
+    remainingSec = periodLenSec;
+    currentPeriod = 1;
+    startPauseBtn.textContent = "Start";
+    resetSubTimer();
+    render();
+  };
+
+  const doSubMade = () => {
+    if (roster.length < ON_COURT) return;
+
+    const { k, off, on } = computeOffOn(court, bench);
+    if (k <= 0) return;
+
+    court = court.filter(n => !off.includes(n)).concat(on);
+    bench = bench.slice(k).concat(off);
+
+    const pick = pickNextGoalieFromOnNoRepeat(on, goalieRotatePtr);
+    currentGoalieName = pick.goalieName;
+    goalieRotatePtr = pick.newPtr;
+
+    if (currentGoalieName) goalieDone.add(currentGoalieName);
+    ensureGoalieOnCourt(currentGoalieName);
+
+    saveState({ startingGoalie: currentGoalieName });
+
+    // FIX #1: acknowledge THIS sub cycle (so it won’t flash/beep when it hits 0)
+    acknowledgedCycleId = subCycleId;
+
+    // Also: if we were in green, revert immediately to white “SUB in”
+    showSubNowGreen = false;
+
+    // If it was already due/flashing, acknowledge it too
+    subDueUnacknowledged = false;
+
+    render();
+  };
+
+  const addGoal = (name) => { goals.push({ period: currentPeriod, remainingSec, name, timestamp: Date.now() }); render(); };
+  const clearGoals = () => { goals = []; oppGoals = 0; render(); };
+  const usUndo = () => { goals.pop(); render(); };
+  const oppGoal = () => { oppGoals += 1; render(); };
+  const oppUndo = () => { oppGoals = Math.max(0, oppGoals - 1); render(); };
+
+  const copyGoals = async () => {
+    const header = `Score: Us ${goals.length} – Opp ${oppGoals}\n`;
+    const lines = goals.map(g => `P${g.period}\t${fmtTime(g.remainingSec)} left\t${g.name}`);
+    const text = header + (lines.join("\n") || "(no goals)");
+    try { await navigator.clipboard.writeText(text); alert("Goals + score copied to clipboard."); }
+    catch { prompt("Copy goals + score:", text); }
+  };
+
+  const boot = () => {
+    const saved = loadState();
+    if (saved) {
+      if (typeof saved.playersText === "string") playersTextEl.value = saved.playersText;
+      if (typeof saved.periodLenMin === "number") periodLenEl.value = String(saved.periodLenMin);
+      if (typeof saved.numPeriods === "number") numPeriodsEl.value = String(saved.numPeriods);
+      if (typeof saved.subsAtOnce === "number") subsAtOnceEl.value = String(saved.subsAtOnce);
+      if (typeof saved.warnSec === "number") warnSecEl.value = String(saved.warnSec);
+    } else {
+      playersTextEl.value = "Player 1\nPlayer 2\nPlayer 3\nPlayer 4\nPlayer 5\nPlayer 6\nPlayer 7";
+    }
+
+    applySettingsFromUI();
+
+    roster = parseRoster();
+    if (roster.length >= ON_COURT) {
+      populateStartingGoalieSelect();
+      if (saved && saved.startingGoalie && roster.includes(saved.startingGoalie)) {
+        startingGoalieEl.value = saved.startingGoalie;
+      }
+      applyPlayers();
+    } else {
+      render();
+    }
+  };
+
+  // Events
+  startPauseBtn.addEventListener("click", toggleStartPause);
+  subMadeBtn.addEventListener("click", doSubMade);
+
+  resetSubBtn.addEventListener("click", () => { resetSubTimer(); render(); });
+  resetBtn.addEventListener("click", resetPeriod);
+
+  oppGoalBtn.addEventListener("click", () => { ensureAudioUnlocked(); oppGoal(); });
+  oppUndoBtn.addEventListener("click", () => { ensureAudioUnlocked(); oppUndo(); });
+  usUndoBtn.addEventListener("click", () => { ensureAudioUnlocked(); usUndo(); });
+
+  applyPlayersBtn.addEventListener("click", () => { ensureAudioUnlocked(); applyPlayers(); });
+  shuffleBtn.addEventListener("click", () => {
+    ensureAudioUnlocked();
+    const r = parseRoster();
+    if (r.length < ON_COURT) { alert(`Need at least ${ON_COURT} players to shuffle/use.`); return; }
+    shuffle(r);
+    playersTextEl.value = r.join("\n");
+    saveState({ playersText: playersTextEl.value });
+    applyPlayers();
+  });
+
+  clearGoalsBtn.addEventListener("click", () => { ensureAudioUnlocked(); clearGoals(); });
+  copyGoalsBtn.addEventListener("click", () => { ensureAudioUnlocked(); copyGoals(); });
+
+  playersTextEl.addEventListener("input", () => saveState({ playersText: playersTextEl.value }));
+
+  periodLenEl.addEventListener("change", applySettingsFromUI);
+  numPeriodsEl.addEventListener("change", applySettingsFromUI);
+  subsAtOnceEl.addEventListener("change", applySettingsFromUI);
+  warnSecEl.addEventListener("change", applySettingsFromUI);
+
+  startingGoalieEl.addEventListener("change", () => {
+    const sel = startingGoalieEl.value;
+    if (sel) saveState({ startingGoalie: sel });
+  });
+
+  boot();
+})();
+</script>
+</body>
+</html>
