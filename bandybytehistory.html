@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <title>BandyByte - History</title>
+  <style>
+    :root { font-family: -apple-system, system-ui, Segoe UI, Roboto, Helvetica, Arial, sans-serif; }
+    body { margin:0; background:#0b0f14; color:#e8eef6; }
+    header{
+      padding:14px 16px 8px;
+      position:sticky; top:0;
+      background:rgba(11,15,20,.92);
+      backdrop-filter: blur(10px);
+      border-bottom:1px solid #1e2a38;
+      z-index:10;
+    }
+    .headerRow{
+      display:grid;
+      grid-template-columns: 36px 1fr 36px;
+      align-items:center;
+      gap:12px;
+    }
+    h1{ margin:0; font-size:16px; font-weight:900; letter-spacing:.2px; text-align:center; }
+    .headerLogo{
+      width:32px;height:32px;
+      background:url("floorballlogowhite.png") no-repeat center / contain;
+      opacity:.85;
+    }
+    body::after{
+      content:"";
+      position:fixed;
+      right:8%;
+      bottom:10%;
+      width:min(42vw, 280px);
+      height:min(42vw, 280px);
+      background:url("floorballlogowhite.png") no-repeat center / contain;
+      opacity:0.045;
+      pointer-events:none;
+      z-index:0;
+    }
+    header, .wrap, .toast, .modalOverlay{ position:relative; z-index:1; }
+    .wrap{ padding:12px 16px 90px; }
+    .card{
+      background:#121a24;
+      border:1px solid #1e2a38;
+      border-radius:14px;
+      padding:12px;
+      margin:12px 0;
+    }
+    .btnbar{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    button{
+      border:1px solid #2a3d55; background:#0e1620; color:#e8eef6;
+      padding:10px 12px; border-radius:12px; font-size:14px; font-weight:800;
+      cursor:pointer; touch-action: manipulation;
+    }
+    button.primary{ background:#1a2a3c; border-color:#3a587a; }
+    button.danger{ background:#2a1416; border-color:#7a3a40; }
+    button.smallbtn{ font-size:13px; padding:7px 9px; font-weight:700; }
+    .pill{ display:inline-block; padding:4px 8px; border-radius:999px;
+      border:1px solid #2a3d55; font-size:12px; opacity:.95; }
+    .meta{ opacity:.9; font-size:13px; display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-top:6px; }
+    .mono{ font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .matchTitle{ font-weight:1000; font-size:15px; }
+    .small{ font-size:12px; opacity:.85; }
+    .modalOverlay{
+      position:fixed; inset:0; background: rgba(0,0,0,.55);
+      display:none; align-items:center; justify-content:center;
+      z-index:50; padding:18px; box-sizing:border-box;
+    }
+    .modal{
+      width:min(720px,100%);
+      background:#121a24; border:1px solid #1e2a38;
+      border-radius:14px; padding:12px; box-sizing:border-box;
+    }
+    .modalHeader{ display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; }
+    .modalHeader h2{ margin:0; font-size:16px; font-weight:900; }
+    textarea{
+      width:100%; min-height:240px; resize:vertical;
+      background:#0c121a; color:#e8eef6; border:1px solid #223246;
+      border-radius:10px; padding:10px; box-sizing:border-box;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size:13px; line-height:1.25;
+    }
+    .toast{
+      position: fixed;
+      left: 50%;
+      transform: translateX(-50%);
+      bottom: calc(24px + env(safe-area-inset-bottom));
+      background: rgba(12,18,26,.95);
+      border: 1px solid #223246;
+      padding: 10px 12px;
+      border-radius: 999px;
+      font-size: 13px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .2s ease;
+      z-index: 60;
+      white-space: nowrap;
+    }
+    .toast.show{ opacity: 1; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="headerRow">
+    <div class="headerLogo" aria-hidden="true"></div>
+    <h1>BandyByte - History</h1>
+    <div class="headerLogo" aria-hidden="true"></div>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="card">
+    <div class="btnbar">
+      <button class="primary" id="backBtn">Back to timer</button>
+      <button class="danger" id="clearAllBtn">Clear all history</button>
+    </div>
+    <div class="small" style="margin-top:8px;">
+      Matches are saved automatically on this device when a game ends (final period reaches 0:00).
+    </div>
+  </div>
+
+  <div id="matches"></div>
+</div>
+
+<div class="modalOverlay" id="modalOverlay" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true" aria-label="Export text">
+    <div class="modalHeader">
+      <h2 id="modalTitle">Export</h2>
+      <button class="smallbtn" id="closeModalBtn" type="button">Close</button>
+    </div>
+    <textarea id="modalText" spellcheck="false"></textarea>
+    <div class="btnbar" style="margin-top:10px;">
+      <button class="primary" id="modalCopyBtn" type="button">Copy</button>
+      <button id="modalSelectAllBtn" type="button">Select all</button>
+    </div>
+    <div class="small" style="margin-top:8px;">
+      If iOS blocks clipboard access, use “Select all” then Copy from the selection menu.
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">Copied</div>
+
+<script>
+(() => {
+  const HISTORY_KEY = "bandybyte_history_v1";
+  const $ = (id) => document.getElementById(id);
+
+  const toast = $("toast");
+  const showToast = (msg) => {
+    toast.textContent = msg;
+    toast.classList.add("show");
+    setTimeout(() => toast.classList.remove("show"), 900);
+  };
+
+  const loadHistory = () => {
+    try {
+      const raw = localStorage.getItem(HISTORY_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      return Array.isArray(arr) ? arr : [];
+    } catch { return []; }
+  };
+  const saveHistory = (arr) => {
+    try { localStorage.setItem(HISTORY_KEY, JSON.stringify(arr)); } catch {}
+  };
+
+  const tryCopyText = async (text) => {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      try { await navigator.clipboard.writeText(text); return true; } catch {}
+    }
+    try {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      ta.setAttribute("readonly", "");
+      ta.style.position = "fixed";
+      ta.style.left = "-9999px";
+      ta.style.top = "0";
+      document.body.appendChild(ta);
+      ta.focus();
+      ta.select();
+      const ok = document.execCommand("copy");
+      document.body.removeChild(ta);
+      return !!ok;
+    } catch { return false; }
+  };
+
+  const modalOverlay = $("modalOverlay");
+  const modalText = $("modalText");
+  const modalTitle = $("modalTitle");
+  const closeModal = () => {
+    modalOverlay.style.display = "none";
+    modalOverlay.setAttribute("aria-hidden","true");
+  };
+  const openModalWithText = (title, text) => {
+    modalTitle.textContent = title;
+    modalText.value = text;
+    modalOverlay.style.display = "flex";
+    modalOverlay.setAttribute("aria-hidden","false");
+    setTimeout(() => { modalText.focus(); modalText.selectionStart = 0; modalText.selectionEnd = 0; }, 50);
+  };
+
+  $("closeModalBtn").addEventListener("click", closeModal);
+  modalOverlay.addEventListener("click", (e) => { if (e.target === modalOverlay) closeModal(); });
+  $("modalSelectAllBtn").addEventListener("click", () => { modalText.focus(); modalText.select(); });
+  $("modalCopyBtn").addEventListener("click", async () => {
+    const ok = await tryCopyText(modalText.value);
+    if (ok) showToast("Copied to clipboard");
+    else showToast("Copy blocked — use Select all");
+  });
+
+  const shareOrCopy = async (title, text) => {
+    if (navigator.share) {
+      try { await navigator.share({ title, text }); return; } catch {}
+    }
+    const ok = await tryCopyText(text);
+    if (ok) showToast("Copied to clipboard");
+    else openModalWithText(title, text);
+  };
+
+  const fmtTime = (sec) => {
+    sec = Math.max(0, Math.floor(sec));
+    const m = Math.floor(sec / 60);
+    const s = sec % 60;
+    return `${m}:${String(s).padStart(2,"0")}`;
+  };
+
+  const render = () => {
+    const container = $("matches");
+    const hist = loadHistory();
+
+    container.innerHTML = "";
+    if (!hist.length) {
+      const card = document.createElement("div");
+      card.className = "card";
+      card.innerHTML = `<div class="pill">No saved matches yet</div>
+        <div class="small" style="margin-top:8px;">Finish a game in the timer app and it will be saved here automatically.</div>`;
+      container.appendChild(card);
+      return;
+    }
+
+    hist.forEach((m, idx) => {
+      const card = document.createElement("div");
+      card.className = "card";
+
+      const date = new Date(m.savedAt || Date.now());
+      const our = (m.ourTeam || "Us");
+      const opp = (m.oppTeam || "Opp");
+      const score = `${m.usGoals ?? "?"}–${m.oppGoals ?? "?"}`;
+      const meta = `Saved: ${date.toLocaleString()} · Periods: ${m.numPeriods ?? "?"} × ${Math.round((m.periodLenSec||0)/60) || "?"} min`;
+
+      card.innerHTML = `
+        <div class="matchTitle">${our} ${score} ${opp}</div>
+        <div class="meta">
+          <span class="pill">${meta}</span>
+        </div>
+        <div class="btnbar" style="margin-top:10px;">
+          <button class="primary smallbtn" data-act="shareSummary" data-idx="${idx}">Share Summary…</button>
+          <button class="smallbtn" data-act="copySummary" data-idx="${idx}">Copy Summary</button>
+          <button class="primary smallbtn" data-act="shareFull" data-idx="${idx}">Share Full…</button>
+          <button class="smallbtn" data-act="copyFull" data-idx="${idx}">Copy Full</button>
+          <button class="danger smallbtn" data-act="delete" data-idx="${idx}">Delete</button>
+        </div>
+      `;
+      container.appendChild(card);
+    });
+
+    container.querySelectorAll("button[data-act]").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const act = btn.getAttribute("data-act");
+        const idx = Number(btn.getAttribute("data-idx"));
+        const hist = loadHistory();
+        const m = hist[idx];
+        if (!m) return;
+
+        const our = (m.ourTeam || "Us");
+        const opp = (m.oppTeam || "Opp");
+        const titleBase = `${our} vs ${opp}`;
+
+        if (act === "delete") {
+          hist.splice(idx, 1);
+          saveHistory(hist);
+          render();
+          showToast("Deleted");
+          return;
+        }
+
+        if (act === "copySummary") {
+          const ok = await tryCopyText(m.coachSummary || "");
+          if (ok) showToast("Copied to clipboard");
+          else openModalWithText("Coach summary", m.coachSummary || "");
+          return;
+        }
+        if (act === "copyFull") {
+          const ok = await tryCopyText(m.fullReport || "");
+          if (ok) showToast("Copied to clipboard");
+          else openModalWithText("Full report", m.fullReport || "");
+          return;
+        }
+        if (act === "shareSummary") return shareOrCopy(`Coach summary: ${titleBase}`, m.coachSummary || "");
+        if (act === "shareFull") return shareOrCopy(`Full report: ${titleBase}`, m.fullReport || "");
+      });
+    });
+  };
+
+  $("backBtn").addEventListener("click", () => { window.location.href = "index.html"; });
+  $("clearAllBtn").addEventListener("click", () => {
+    if (!confirm("Clear all saved match history on this device?")) return;
+    saveHistory([]);
+    render();
+    showToast("Cleared");
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
